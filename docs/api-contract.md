@@ -214,6 +214,90 @@ listSchema JSON：`{ "columns": [{ "field", "title", "width", "dictType", "edita
 
 安全约束：SQL 型仅允许单条 SELECT（禁分号/注释/DML/DDL 关键词）；标识符（表/列/排序字段）一律正则白名单校验；内部表（含 tenant_id 列）自动追加租户条件；API 型数据源为预留，查询时报"暂未支持"。
 
+## 低代码 /lc/process（三期 M3：流程）
+
+### 流程定义 /lc/process
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/process/page?keyword=&status=&pageNum=&pageSize=` | 分页 |
+| GET | `/lc/process/{id}` | 详情（含 bpmnXml） |
+| POST | `/lc/process` | `{ code, name, category, bpmnXml, remark }` 新建草稿 |
+| PUT | `/lc/process` | `{ id, name, category, bpmnXml, remark }` 保存（code 不可改） |
+| DELETE | `/lc/process/{id}` | 逻辑删除 |
+| PUT | `/lc/process/{id}/deploy` | 部署到 Flowable（RepositoryService；flow_key 取 BPMN process id；publish_version+1；status=1） |
+| GET | `/lc/process/publish/{code}` | 运行时取已部署定义 `{ code, name, flowKey, publishVersion }` |
+
+### 流程运行 /lc/process
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/lc/process/{code}/start` | `{ title, formCode?, formDataId?, vars: { approver, approver2? } }` 发起；写 lc_process_instance + 首任务 pending |
+| GET | `/lc/process/mine/instances?status=&pageNum=&pageSize=` | 我发起的实例分页（含当前节点/状态） |
+| GET | `/lc/process/todo?pageNum=&pageSize=` | 我的待办（Flowable assignee=当前人），data `{ list: [{ taskId, instanceId, title, nodeName, startUser, createTime }], total }` |
+| GET | `/lc/process/done?pageNum=&pageSize=` | 我的已办（HistoryService） |
+| GET | `/lc/process/instance/{id}` | 实例详情 + 轨迹 `{ instance: {...}, tasks: [{ nodeName, assignee, result, comment, handleTime }] }` |
+| POST | `/lc/process/task/{taskId}/approve` | `{ comment }` 通过并流转到下一节点；流程结束置 instance.status=approved |
+| POST | `/lc/process/task/{taskId}/reject` | `{ comment }` 驳回：终止流程，instance.status=rejected |
+| POST | `/lc/process/task/{taskId}/transfer` | `{ assignee, comment }` 转办（改 Flowable assignee + 记录 transferred） |
+| POST | `/lc/process/instance/{id}/withdraw` | 撤回：仅 running 且当前待办尚未办理；deleteProcessInstance 并 status=withdrawn |
+
+内置 BPMN 模板（前端设计器提供，deployee 变量方式指定办理人）：①请假审批 start→主管审批(assignee=${approver})→end；②两级审批 start→主管审批(${approver})→部门负责人审批(${approver2})→end。
+权限：定义 CRUD `lc:process:add/edit/delete/list`、deploy `lc:process:deploy`；发起 `lc:process:start`；待办审批 `lc:process:approve`；我的流程菜单 `lc:process:mine`；轨迹/详情登录即可。
+
+## 低代码 /lc（四期 M4：数据集与大屏）
+
+### 数据集 /lc/dataset
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/dataset/page?keyword=&pageNum=&pageSize=` | 分页 |
+| GET | `/lc/dataset/{id}` | 详情（含 sqlText/paramsJson） |
+| POST | `/lc/dataset` | `{ code, name, sqlText, paramsJson, remark }`（仅 SELECT，同列表 SQL 安全规则） |
+| PUT | `/lc/dataset` | 保存（code 不可改） |
+| DELETE | `/lc/dataset/{id}` | 逻辑删除 |
+| POST | `/lc/dataset/{id}/preview` | body `{ params: {...} }` → `{ columns: [列名], rows: [行对象] }`（限 100 行） |
+| GET | `/lc/dataset/publish/{code}/data?params=` | 图表取数（params 为 URL 编码 JSON）→ `{ columns, rows }` |
+
+paramsJson：`[{ "name": "days", "label": "最近天数", "type": "number", "required": true, "defaultValue": 7 }]`。
+
+### 大屏 /lc/dashboard
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/dashboard/page?keyword=&status=&pageNum=&pageSize=` | 分页 |
+| GET | `/lc/dashboard/{id}` | 详情（含 layoutJson） |
+| POST | `/lc/dashboard` | `{ code, name, layoutJson, remark }` 新建草稿 |
+| PUT | `/lc/dashboard` | 保存布局（code 不可改） |
+| DELETE | `/lc/dashboard/{id}` | 逻辑删除 |
+| PUT | `/lc/dashboard/{id}/publish` | 发布：version+1 快照 |
+| GET | `/lc/dashboard/publish/{code}` | 运行时接口：`{ code, name, version, layoutJson }` |
+
+layoutJson：`{ "items": [{ "type": "chart", "chartType": "line"\|"bar"\|"pie", "datasetCode", "title", "xField", "yField", "seriesField", "x", "y", "w", "h", "refreshSec" }] }`。
+
+## 低代码 /lc（五期 M5：数据管理与代码生成）
+
+### 可视化建表 /lc/db
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/db/columns?tableName=` | 逆向读表结构（平台主库）`[{ columnName, typeName, comment, nullable, pk }]` |
+| POST | `/lc/db/ddl/preview` | body `{ tableName, tableComment, columns: [{ name, typeName(varchar/int/bigint/datetime/text/decimal), length, comment, notNull, pk, defaultValue }] }` → `{ ddl }`（按 gencode.db-type 方言生成，含雪花ID id/tenant_id/审计列/逻辑删除列的统一约定） |
+| POST | `/lc/db/ddl/execute` | 同上 body → 执行建表（表已存在报错）；成功后同步追加到 resources sql 脚本不做，仅建表 |
+| GET | `/lc/db/typemap` | 方言类型映射表（供前端下拉） |
+
+安全：tableName/columns 走标识符白名单；仅允许 CREATE TABLE 语义（引擎内部生成，不接收裸 DDL 文本）。
+
+### 代码生成 /lc/gen
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/gen/tables?keyword=` | 可选表列表（平台主库 information_schema） |
+| POST | `/lc/gen/preview` | body `{ tableName, options: { packageName, moduleName, author, businessName } }` → `{ files: [{ path, content }] }`（Java Entity/Mapper/Service/Controller/MapperXML + Vue 列表页/表单 + api.ts + SQL 菜单脚本） |
+| POST | `/lc/gen/download` | 同 preview，返回 zip（application/octet-stream） |
+
+生成基准：五方言（mysql/postgresql/oracle/sqlserver/dm）保留字转义与类型映射内建；主键统一雪花 Long；R/PageResult/租户/审计遵循平台约定。
+
 ## 流程模块 /flow（一期骨架）
 
 | 方法 | 路径 | 说明 |

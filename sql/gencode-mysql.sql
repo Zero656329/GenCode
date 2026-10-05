@@ -465,3 +465,140 @@ INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, ic
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112)
 AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+-- ---------------------------------------------------------------------
+-- 10. 低代码流程（M3：流程定义 / 实例 / 审批任务）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_process_def (
+  id              BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id       VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code            VARCHAR(64)  NOT NULL COMMENT '流程编码（唯一）',
+  name            VARCHAR(100) NOT NULL COMMENT '流程名称',
+  category        VARCHAR(50)  NULL COMMENT '分类',
+  bpmn_xml        MEDIUMTEXT   NULL COMMENT 'BPMN 2.0 XML',
+  flow_key        VARCHAR(64)  NULL COMMENT 'Flowable processDefinitionKey',
+  publish_version INT          NOT NULL DEFAULT 0 COMMENT '部署版本',
+  status          TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  remark          VARCHAR(500) NULL,
+  create_by       VARCHAR(64)  NULL,
+  create_time     DATETIME     NULL,
+  update_by       VARCHAR(64)  NULL,
+  update_time     DATETIME     NULL,
+  deleted         TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_process_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程定义表';
+
+CREATE TABLE IF NOT EXISTS lc_process_instance (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  process_def_id    BIGINT       NOT NULL COMMENT 'lc_process_def.id',
+  flow_instance_id  VARCHAR(64)  NULL COMMENT 'Flowable 流程实例ID',
+  business_key      VARCHAR(64)  NULL COMMENT '业务键',
+  form_code         VARCHAR(64)  NULL COMMENT '关联表单编码',
+  form_data_id      BIGINT       NULL COMMENT '关联表单数据ID',
+  title             VARCHAR(200) NOT NULL COMMENT '流程标题',
+  current_node      VARCHAR(100) NULL COMMENT '当前节点',
+  status            VARCHAR(16)  NOT NULL DEFAULT 'running' COMMENT '（running审批中 approved已通过 rejected已驳回 withdrawn已撤回）',
+  start_user        VARCHAR(64)  NULL COMMENT '发起人账号',
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_lc_pi_def (process_def_id),
+  KEY idx_lc_pi_user (start_user)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程实例表';
+
+CREATE TABLE IF NOT EXISTS lc_process_task (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  instance_id BIGINT       NOT NULL COMMENT 'lc_process_instance.id',
+  task_id     VARCHAR(64)  NULL COMMENT 'Flowable 任务ID',
+  node_name   VARCHAR(100) NULL COMMENT '节点名称',
+  assignee    VARCHAR(64)  NULL COMMENT '办理人账号',
+  result      VARCHAR(16)  NOT NULL DEFAULT 'pending' COMMENT '（pending待审批 approved通过 rejected驳回 transferred转办）',
+  comment     VARCHAR(500) NULL COMMENT '审批意见',
+  handle_time DATETIME     NULL COMMENT '办理时间',
+  create_time DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_lc_pt_instance (instance_id),
+  KEY idx_lc_pt_assignee (assignee)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程审批任务表';
+
+-- 流程菜单（流程设计/设计器/我的流程/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(208, 200, '流程设计', '/lc/process', 'lc/process/index', 'C', 'lc:process:list', 'ClusterOutlined', 4, 0, 0, 'init', NOW()),
+(209, 200, '流程设计器', '/lc/process/design/:id', 'lc/process/design', 'C', 'lc:process:edit', NULL, 9, 1, 0, 'init', NOW()),
+(210, 200, '我的流程', '/lc/process/mine', 'lc/process/mine', 'C', 'lc:process:mine', 'SendOutlined', 5, 0, 0, 'init', NOW()),
+(2121, 208, '流程新增', NULL, NULL, 'F', 'lc:process:add', NULL, 1, 0, 0, 'init', NOW()),
+(2122, 208, '流程修改', NULL, NULL, 'F', 'lc:process:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2123, 208, '流程删除', NULL, NULL, 'F', 'lc:process:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2124, 208, '流程部署', NULL, NULL, 'F', 'lc:process:deploy', NULL, 4, 0, 0, 'init', NOW()),
+(2125, 210, '流程发起', NULL, NULL, 'F', 'lc:process:start', NULL, 1, 0, 0, 'init', NOW()),
+(2126, 210, '流程审批', NULL, NULL, 'F', 'lc:process:approve', NULL, 2, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (208, 209, 210, 2121, 2122, 2123, 2124, 2125, 2126)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 2, id FROM sys_menu WHERE id IN (210, 2125, 2126)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 2 AND rm.menu_id = sys_menu.id);
+
+-- ---------------------------------------------------------------------
+-- 11. 报表与大屏（M4：数据集 / 大屏）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_dataset (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code        VARCHAR(64)  NOT NULL COMMENT '数据集编码（唯一）',
+  name        VARCHAR(100) NOT NULL COMMENT '数据集名称',
+  sql_text    MEDIUMTEXT   NOT NULL COMMENT '查询 SQL（SELECT，支持 #{param} 参数化）',
+  params_json MEDIUMTEXT   NULL COMMENT '参数定义 JSON [{name,label,type,required,defaultValue}]',
+  remark      VARCHAR(500) NULL,
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_dataset_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码数据集表';
+
+CREATE TABLE IF NOT EXISTS lc_dashboard (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '大屏编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '大屏名称',
+  layout_json       MEDIUMTEXT   NULL COMMENT '布局 JSON [{type,chartType,datasetCode,title,xField,yField,seriesField,x,y,w,h,refreshSec}]',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0,
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布布局快照',
+  publish_time      DATETIME     NULL,
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_dashboard_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码数据大屏表';
+
+-- 报表大屏菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(211, 200, '报表设计', '/lc/report', 'lc/report/index', 'C', 'lc:report:list', 'BarChartOutlined', 6, 0, 0, 'init', NOW()),
+(212, 200, '大屏设计', '/lc/dashboard', 'lc/dashboard/index', 'C', 'lc:dashboard:list', 'MonitorOutlined', 7, 0, 0, 'init', NOW()),
+(213, 200, '大屏运行页', '/app/dashboard/:code', 'app/dashboard-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(2201, 211, '报表新增', NULL, NULL, 'F', 'lc:report:add', NULL, 1, 0, 0, 'init', NOW()),
+(2202, 211, '报表修改', NULL, NULL, 'F', 'lc:report:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2203, 211, '报表删除', NULL, NULL, 'F', 'lc:report:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2211, 212, '大屏新增', NULL, NULL, 'F', 'lc:dashboard:add', NULL, 1, 0, 0, 'init', NOW()),
+(2212, 212, '大屏修改', NULL, NULL, 'F', 'lc:dashboard:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2213, 212, '大屏删除', NULL, NULL, 'F', 'lc:dashboard:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2214, 212, '大屏发布', NULL, NULL, 'F', 'lc:dashboard:publish', NULL, 4, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (211, 212, 213, 2201, 2202, 2203, 2211, 2212, 2213, 2214)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

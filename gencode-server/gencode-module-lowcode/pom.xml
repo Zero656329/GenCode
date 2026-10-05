@@ -12,12 +12,17 @@
 
     <artifactId>gencode-module-lowcode</artifactId>
     <name>gencode-module-lowcode</name>
-    <description>低代码模块：表单设计与填报（二期 M1）</description>
+    <description>低代码模块：表单/列表/流程（二期 M1、三期 M3）</description>
 
     <dependencies>
         <dependency>
             <groupId>com.gencode</groupId>
             <artifactId>gencode-framework</artifactId>
+        </dependency>
+        <!-- Flowable 引擎服务（RepositoryService/RuntimeService/TaskService/HistoryService） -->
+        <dependency>
+            <groupId>com.gencode</groupId>
+            <artifactId>gencode-module-flow</artifactId>
         </dependency>
     </dependencies>
 </project>

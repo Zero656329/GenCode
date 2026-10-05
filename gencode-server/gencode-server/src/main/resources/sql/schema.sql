@@ -326,3 +326,104 @@ CREATE TABLE IF NOT EXISTS lc_datasource (
   deleted     TINYINT      NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码外部数据源表';
+
+-- ---------------------------------------------------------------------
+-- 10. 低代码流程（M3：流程定义 / 实例 / 审批任务）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_process_def (
+  id              BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id       VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code            VARCHAR(64)  NOT NULL COMMENT '流程编码（唯一）',
+  name            VARCHAR(100) NOT NULL COMMENT '流程名称',
+  category        VARCHAR(50)  NULL COMMENT '分类',
+  bpmn_xml        MEDIUMTEXT   NULL COMMENT 'BPMN 2.0 XML',
+  flow_key        VARCHAR(64)  NULL COMMENT 'Flowable processDefinitionKey',
+  publish_version INT          NOT NULL DEFAULT 0 COMMENT '部署版本',
+  status          TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  remark          VARCHAR(500) NULL,
+  create_by       VARCHAR(64)  NULL,
+  create_time     DATETIME     NULL,
+  update_by       VARCHAR(64)  NULL,
+  update_time     DATETIME     NULL,
+  deleted         TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_process_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程定义表';
+
+CREATE TABLE IF NOT EXISTS lc_process_instance (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  process_def_id    BIGINT       NOT NULL COMMENT 'lc_process_def.id',
+  flow_instance_id  VARCHAR(64)  NULL COMMENT 'Flowable 流程实例ID',
+  business_key      VARCHAR(64)  NULL COMMENT '业务键',
+  form_code         VARCHAR(64)  NULL COMMENT '关联表单编码',
+  form_data_id      BIGINT       NULL COMMENT '关联表单数据ID',
+  title             VARCHAR(200) NOT NULL COMMENT '流程标题',
+  current_node      VARCHAR(100) NULL COMMENT '当前节点',
+  status            VARCHAR(16)  NOT NULL DEFAULT 'running' COMMENT '（running approved rejected withdrawn）',
+  start_user        VARCHAR(64)  NULL COMMENT '发起人账号',
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_lc_pi_def (process_def_id),
+  KEY idx_lc_pi_user (start_user)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程实例表';
+
+CREATE TABLE IF NOT EXISTS lc_process_task (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  instance_id BIGINT       NOT NULL COMMENT 'lc_process_instance.id',
+  task_id     VARCHAR(64)  NULL COMMENT 'Flowable 任务ID',
+  node_name   VARCHAR(100) NULL COMMENT '节点名称',
+  assignee    VARCHAR(64)  NULL COMMENT '办理人账号',
+  result      VARCHAR(16)  NOT NULL DEFAULT 'pending' COMMENT '（pending approved rejected transferred）',
+  comment     VARCHAR(500) NULL COMMENT '审批意见',
+  handle_time DATETIME     NULL COMMENT '办理时间',
+  create_time DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_lc_pt_instance (instance_id),
+  KEY idx_lc_pt_assignee (assignee)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码流程审批任务表';
+
+-- ---------------------------------------------------------------------
+-- 11. 报表与大屏（M4：数据集 / 大屏）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_dataset (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code        VARCHAR(64)  NOT NULL COMMENT '数据集编码（唯一）',
+  name        VARCHAR(100) NOT NULL COMMENT '数据集名称',
+  sql_text    MEDIUMTEXT   NOT NULL COMMENT '查询 SQL（SELECT，支持 #{param} 参数化）',
+  params_json MEDIUMTEXT   NULL COMMENT '参数定义 JSON',
+  remark      VARCHAR(500) NULL,
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_dataset_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码数据集表';
+
+CREATE TABLE IF NOT EXISTS lc_dashboard (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '大屏编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '大屏名称',
+  layout_json       MEDIUMTEXT   NULL COMMENT '布局 JSON',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0,
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布布局快照',
+  publish_time      DATETIME     NULL,
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_dashboard_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码数据大屏表';

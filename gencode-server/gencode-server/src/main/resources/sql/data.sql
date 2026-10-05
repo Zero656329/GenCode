@@ -136,3 +136,40 @@ INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, ic
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112)
 AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+
+-- 流程菜单（流程设计/设计器/我的流程/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(208, 200, '流程设计', '/lc/process', 'lc/process/index', 'C', 'lc:process:list', 'ClusterOutlined', 4, 0, 0, 'init', NOW()),
+(209, 200, '流程设计器', '/lc/process/design/:id', 'lc/process/design', 'C', 'lc:process:edit', NULL, 9, 1, 0, 'init', NOW()),
+(210, 200, '我的流程', '/lc/process/mine', 'lc/process/mine', 'C', 'lc:process:mine', 'SendOutlined', 5, 0, 0, 'init', NOW()),
+(2121, 208, '流程新增', NULL, NULL, 'F', 'lc:process:add', NULL, 1, 0, 0, 'init', NOW()),
+(2122, 208, '流程修改', NULL, NULL, 'F', 'lc:process:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2123, 208, '流程删除', NULL, NULL, 'F', 'lc:process:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2124, 208, '流程部署', NULL, NULL, 'F', 'lc:process:deploy', NULL, 4, 0, 0, 'init', NOW()),
+(2125, 210, '流程发起', NULL, NULL, 'F', 'lc:process:start', NULL, 1, 0, 0, 'init', NOW()),
+(2126, 210, '流程审批', NULL, NULL, 'F', 'lc:process:approve', NULL, 2, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (208, 209, 210, 2121, 2122, 2123, 2124, 2125, 2126)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 2, id FROM sys_menu WHERE id IN (210, 2125, 2126)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 2 AND rm.menu_id = sys_menu.id);
+
+-- 报表大屏菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(211, 200, '报表设计', '/lc/report', 'lc/report/index', 'C', 'lc:report:list', 'BarChartOutlined', 6, 0, 0, 'init', NOW()),
+(212, 200, '大屏设计', '/lc/dashboard', 'lc/dashboard/index', 'C', 'lc:dashboard:list', 'MonitorOutlined', 7, 0, 0, 'init', NOW()),
+(213, 200, '大屏运行页', '/app/dashboard/:code', 'app/dashboard-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(2201, 211, '报表新增', NULL, NULL, 'F', 'lc:report:add', NULL, 1, 0, 0, 'init', NOW()),
+(2202, 211, '报表修改', NULL, NULL, 'F', 'lc:report:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2203, 211, '报表删除', NULL, NULL, 'F', 'lc:report:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2211, 212, '大屏新增', NULL, NULL, 'F', 'lc:dashboard:add', NULL, 1, 0, 0, 'init', NOW()),
+(2212, 212, '大屏修改', NULL, NULL, 'F', 'lc:dashboard:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2213, 212, '大屏删除', NULL, NULL, 'F', 'lc:dashboard:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2214, 212, '大屏发布', NULL, NULL, 'F', 'lc:dashboard:publish', NULL, 4, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (211, 212, 213, 2201, 2202, 2203, 2211, 2212, 2213, 2214)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

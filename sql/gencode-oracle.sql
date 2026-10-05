@@ -589,3 +589,83 @@ INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, stat
 INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2112, 207, '数据源删除', 'F', 'lc:datasource:delete', 3, 0, 0, 'init', SYSDATE);
 
 INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112);
+
+-- ---------------------------------------------------------------------
+-- 10. 低代码流程（M3：流程定义 / 实例 / 审批任务）
+-- ---------------------------------------------------------------------
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_process_task PURGE';     EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_process_instance PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_process_def PURGE';      EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+
+CREATE TABLE lc_process_def (
+  id              NUMBER(20)        NOT NULL,
+  tenant_id       VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  code            VARCHAR2(64 CHAR) NOT NULL,
+  name            VARCHAR2(100 CHAR) NOT NULL,
+  category        VARCHAR2(50 CHAR),
+  bpmn_xml        CLOB,
+  flow_key        VARCHAR2(64 CHAR),
+  publish_version NUMBER(10)        DEFAULT 0 NOT NULL,
+  status          NUMBER(3)         DEFAULT 0 NOT NULL,
+  remark          VARCHAR2(500 CHAR),
+  create_by       VARCHAR2(64 CHAR),
+  create_time     DATE,
+  update_by       VARCHAR2(64 CHAR),
+  update_time     DATE,
+  deleted         NUMBER(3)         DEFAULT 0 NOT NULL,
+  CONSTRAINT uk_lc_process_code UNIQUE (code)
+);
+COMMENT ON TABLE lc_process_def IS '低代码流程定义表';
+
+CREATE TABLE lc_process_instance (
+  id               NUMBER(20)        NOT NULL,
+  tenant_id        VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  process_def_id   NUMBER(20)        NOT NULL,
+  flow_instance_id VARCHAR2(64 CHAR),
+  business_key     VARCHAR2(64 CHAR),
+  form_code        VARCHAR2(64 CHAR),
+  form_data_id     NUMBER(20),
+  title            VARCHAR2(200 CHAR) NOT NULL,
+  current_node     VARCHAR2(100 CHAR),
+  status           VARCHAR2(16 CHAR)  DEFAULT 'running' NOT NULL,
+  start_user       VARCHAR2(64 CHAR),
+  create_by        VARCHAR2(64 CHAR),
+  create_time      DATE,
+  update_by        VARCHAR2(64 CHAR),
+  update_time      DATE,
+  deleted          NUMBER(3)         DEFAULT 0 NOT NULL
+);
+COMMENT ON TABLE lc_process_instance IS '低代码流程实例表';
+
+CREATE TABLE lc_process_task (
+  id          NUMBER(20)        NOT NULL,
+  tenant_id   VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  instance_id NUMBER(20)        NOT NULL,
+  task_id     VARCHAR2(64 CHAR),
+  node_name   VARCHAR2(100 CHAR),
+  assignee    VARCHAR2(64 CHAR),
+  result      VARCHAR2(16 CHAR)  DEFAULT 'pending' NOT NULL,
+  comment     VARCHAR2(500 CHAR),
+  handle_time DATE,
+  create_time DATE
+);
+COMMENT ON TABLE lc_process_task IS '低代码流程审批任务表';
+
+CREATE INDEX idx_lc_pi_def ON lc_process_instance (process_def_id);
+CREATE INDEX idx_lc_pi_user ON lc_process_instance (start_user);
+CREATE INDEX idx_lc_pt_instance ON lc_process_task (instance_id);
+CREATE INDEX idx_lc_pt_assignee ON lc_process_task (assignee);
+
+-- 流程菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (208, 200, '流程设计', '/lc/process', 'lc/process/index', 'C', 'lc:process:list', 'ClusterOutlined', 4, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (209, 200, '流程设计器', '/lc/process/design/:id', 'lc/process/design', 'C', 'lc:process:edit', NULL, 9, 1, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (210, 200, '我的流程', '/lc/process/mine', 'lc/process/mine', 'C', 'lc:process:mine', 'SendOutlined', 5, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2121, 208, '流程新增', 'F', 'lc:process:add', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2122, 208, '流程修改', 'F', 'lc:process:edit', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2123, 208, '流程删除', 'F', 'lc:process:delete', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2124, 208, '流程部署', 'F', 'lc:process:deploy', 4, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2125, 210, '流程发起', 'F', 'lc:process:start', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2126, 210, '流程审批', 'F', 'lc:process:approve', 2, 0, 0, 'init', SYSDATE);
+
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (208, 209, 210, 2121, 2122, 2123, 2124, 2125, 2126);
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 2, id FROM sys_menu WHERE id IN (210, 2125, 2126);
