@@ -602,3 +602,68 @@ INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, ic
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE id IN (211, 212, 213, 2201, 2202, 2203, 2211, 2212, 2213, 2214)
 AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+-- 数据管理与代码生成菜单（M5）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(214, 200, '数据管理', '/lc/db', 'lc/db/index', 'C', 'lc:db:list', 'ToolOutlined', 8, 0, 0, 'init', NOW()),
+(215, 200, '代码生成', '/lc/gen', 'lc/gen/index', 'C', 'lc:gen:list', 'CodeOutlined', 9, 0, 0, 'init', NOW()),
+(2130, 214, '可视化建表', NULL, NULL, 'F', 'lc:db:create', NULL, 1, 0, 0, 'init', NOW()),
+(2140, 215, '生成下载', NULL, NULL, 'F', 'lc:gen:download', NULL, 1, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (214, 215, 2130, 2140)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+-- ---------------------------------------------------------------------
+-- 12. 集成（M6：第三方 HTTP 接口 / 调用日志）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_http_api (
+  id             BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id      VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code           VARCHAR(64)  NOT NULL COMMENT '接口编码（唯一）',
+  name           VARCHAR(100) NOT NULL COMMENT '接口名称',
+  method         VARCHAR(10)  NOT NULL DEFAULT 'GET' COMMENT 'GET/POST',
+  url            VARCHAR(500) NOT NULL COMMENT '目标地址（支持 {param} 路径参数）',
+  headers_json   VARCHAR(500) NULL COMMENT '请求头 JSON',
+  body_template  MEDIUMTEXT   NULL COMMENT 'POST 请求体模板（支持 {param} 占位）',
+  timeout_ms     INT          NOT NULL DEFAULT 5000,
+  status         TINYINT      NOT NULL DEFAULT 0 COMMENT '（0启用 1停用）',
+  remark         VARCHAR(500) NULL,
+  create_by      VARCHAR(64)  NULL,
+  create_time    DATETIME     NULL,
+  update_by      VARCHAR(64)  NULL,
+  update_time    DATETIME     NULL,
+  deleted        TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_http_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='第三方 HTTP 接口配置表';
+
+CREATE TABLE IF NOT EXISTS lc_http_log (
+  id           BIGINT       NOT NULL,
+  tenant_id    VARCHAR(12)  NOT NULL DEFAULT '000000',
+  api_code     VARCHAR(64)  NOT NULL,
+  method       VARCHAR(10)  NULL,
+  url          VARCHAR(500) NULL,
+  request_body MEDIUMTEXT   NULL,
+  success      TINYINT      NOT NULL DEFAULT 0,
+  cost_ms      BIGINT       NULL,
+  resp_body    MEDIUMTEXT   NULL COMMENT '响应（截断 2000 字符）',
+  create_time  DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_lc_http_log_code (api_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='第三方 HTTP 调用日志表';
+
+-- M6 菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(216, 200, '接口管理', '/lc/http', 'lc/http/index', 'C', 'lc:http:list', 'ApiOutlined', 10, 0, 0, 'init', NOW()),
+(217, 200, '服务监控', '/lc/monitor', 'lc/monitor/index', 'C', 'lc:monitor:list', 'FundOutlined', 11, 0, 0, 'init', NOW()),
+(218, 200, '数据回收站', '/lc/recycle', 'lc/recycle/index', 'C', 'lc:recycle:list', 'DeleteOutlined', 12, 0, 0, 'init', NOW()),
+(2221, 216, '接口新增', NULL, NULL, 'F', 'lc:http:add', NULL, 1, 0, 0, 'init', NOW()),
+(2222, 216, '接口修改', NULL, NULL, 'F', 'lc:http:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2223, 216, '接口删除', NULL, NULL, 'F', 'lc:http:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2224, 216, '接口调用', NULL, NULL, 'F', 'lc:http:call', NULL, 4, 0, 0, 'init', NOW()),
+(2231, 218, '回收站恢复', NULL, NULL, 'F', 'lc:recycle:restore', NULL, 1, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (216, 217, 218, 2221, 2222, 2223, 2224, 2231)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

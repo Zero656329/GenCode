@@ -669,3 +669,67 @@ INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, stat
 
 INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (208, 209, 210, 2121, 2122, 2123, 2124, 2125, 2126);
 INSERT INTO sys_role_menu (role_id, menu_id) SELECT 2, id FROM sys_menu WHERE id IN (210, 2125, 2126);
+
+-- 数据管理与代码生成菜单（M5）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (214, 200, '数据管理', '/lc/db', 'lc/db/index', 'C', 'lc:db:list', 'ToolOutlined', 8, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (215, 200, '代码生成', '/lc/gen', 'lc/gen/index', 'C', 'lc:gen:list', 'CodeOutlined', 9, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2130, 214, '可视化建表', 'F', 'lc:db:create', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2140, 215, '生成下载', 'F', 'lc:gen:download', 1, 0, 0, 'init', SYSDATE);
+
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (214, 215, 2130, 2140);
+
+-- ---------------------------------------------------------------------
+-- 12. 集成（M6：第三方 HTTP 接口 / 调用日志）
+-- ---------------------------------------------------------------------
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_http_log PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_http_api PURGE';  EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+
+CREATE TABLE lc_http_api (
+  id            NUMBER(20)        NOT NULL,
+  tenant_id     VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  code          VARCHAR2(64 CHAR) NOT NULL,
+  name          VARCHAR2(100 CHAR) NOT NULL,
+  method        VARCHAR2(10 CHAR)  DEFAULT 'GET' NOT NULL,
+  url           VARCHAR2(500 CHAR) NOT NULL,
+  headers_json  VARCHAR2(500 CHAR),
+  body_template CLOB,
+  timeout_ms    NUMBER(10)        DEFAULT 5000 NOT NULL,
+  status        NUMBER(3)         DEFAULT 0 NOT NULL,
+  remark        VARCHAR2(500 CHAR),
+  create_by     VARCHAR2(64 CHAR),
+  create_time   DATE,
+  update_by     VARCHAR2(64 CHAR),
+  update_time   DATE,
+  deleted       NUMBER(3)         DEFAULT 0 NOT NULL,
+  CONSTRAINT uk_lc_http_code UNIQUE (code)
+);
+COMMENT ON TABLE lc_http_api IS '第三方 HTTP 接口配置表';
+
+CREATE TABLE lc_http_log (
+  id           NUMBER(20)        NOT NULL,
+  tenant_id    VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  api_code     VARCHAR2(64 CHAR) NOT NULL,
+  method       VARCHAR2(10 CHAR),
+  url          VARCHAR2(500 CHAR),
+  request_body CLOB,
+  success      NUMBER(3)         DEFAULT 0 NOT NULL,
+  cost_ms      NUMBER(20),
+  resp_body    CLOB,
+  create_time  DATE
+);
+COMMENT ON TABLE lc_http_log IS '第三方 HTTP 调用日志表';
+
+CREATE INDEX idx_lc_http_log_code ON lc_http_log (api_code);
+
+
+-- M6 菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (216, 200, '接口管理', '/lc/http', 'lc/http/index', 'C', 'lc:http:list', 'ApiOutlined', 10, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (217, 200, '服务监控', '/lc/monitor', 'lc/monitor/index', 'C', 'lc:monitor:list', 'FundOutlined', 11, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (218, 200, '数据回收站', '/lc/recycle', 'lc/recycle/index', 'C', 'lc:recycle:list', 'DeleteOutlined', 12, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2221, 216, '接口新增', 'F', 'lc:http:add', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2222, 216, '接口修改', 'F', 'lc:http:edit', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2223, 216, '接口删除', 'F', 'lc:http:delete', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2224, 216, '接口调用', 'F', 'lc:http:call', 4, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2231, 218, '回收站恢复', 'F', 'lc:recycle:restore', 1, 0, 0, 'init', SYSDATE);
+
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (216, 217, 218, 2221, 2222, 2223, 2224, 2231);

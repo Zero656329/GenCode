@@ -427,3 +427,42 @@ CREATE TABLE IF NOT EXISTS lc_dashboard (
   PRIMARY KEY (id),
   UNIQUE KEY uk_lc_dashboard_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码数据大屏表';
+
+-- ---------------------------------------------------------------------
+-- 12. 集成（M6：第三方 HTTP 接口 / 调用日志）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_http_api (
+  id             BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id      VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code           VARCHAR(64)  NOT NULL COMMENT '接口编码（唯一）',
+  name           VARCHAR(100) NOT NULL COMMENT '接口名称',
+  method         VARCHAR(10)  NOT NULL DEFAULT 'GET' COMMENT 'GET/POST',
+  url            VARCHAR(500) NOT NULL COMMENT '目标地址（支持 {param} 路径参数）',
+  headers_json   VARCHAR(500) NULL COMMENT '请求头 JSON',
+  body_template  MEDIUMTEXT   NULL COMMENT 'POST 请求体模板（支持 {param} 占位）',
+  timeout_ms     INT          NOT NULL DEFAULT 5000,
+  status         TINYINT      NOT NULL DEFAULT 0 COMMENT '（0启用 1停用）',
+  remark         VARCHAR(500) NULL,
+  create_by      VARCHAR(64)  NULL,
+  create_time    DATETIME     NULL,
+  update_by      VARCHAR(64)  NULL,
+  update_time    DATETIME     NULL,
+  deleted        TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_http_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='第三方 HTTP 接口配置表';
+
+CREATE TABLE IF NOT EXISTS lc_http_log (
+  id           BIGINT       NOT NULL,
+  tenant_id    VARCHAR(12)  NOT NULL DEFAULT '000000',
+  api_code     VARCHAR(64)  NOT NULL,
+  method       VARCHAR(10)  NULL,
+  url          VARCHAR(500) NULL,
+  request_body MEDIUMTEXT   NULL,
+  success      TINYINT      NOT NULL DEFAULT 0,
+  cost_ms      BIGINT       NULL,
+  resp_body    MEDIUMTEXT   NULL COMMENT '响应（截断 2000 字符）',
+  create_time  DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_lc_http_log_code (api_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='第三方 HTTP 调用日志表';

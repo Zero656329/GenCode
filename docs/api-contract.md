@@ -299,6 +299,35 @@ layoutJson：`{ "items": [{ "type": "chart", "chartType": "line"\|"bar"\|"pie", 
 
 生成基准：五方言（mysql/postgresql/oracle/sqlserver/dm）保留字转义与类型映射内建；主键统一雪花 Long；R/PageResult/租户/审计遵循平台约定。
 
+## 集成 /lc（六期 M6：HTTP 接口 / 监控 / 回收站）
+
+### 第三方接口 /lc/http
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/http/page?keyword=&pageNum=&pageSize=` | 分页 |
+| GET | `/lc/http/{id}` | 详情 |
+| POST | `/lc/http` | `{ code, name, method(GET/POST), url, headersJson, bodyTemplate, timeoutMs, remark }` |
+| PUT | `/lc/http` | 保存（code 不可改） |
+| DELETE | `/lc/http/{id}` | 逻辑删除 |
+| POST | `/lc/http/{code}/call` | body `{ params: {...} }`：服务端替换 url/bodyTemplate 中 `{param}` 后调用（RestTemplate，超时取配置），写 lc_http_log，返回 `{ success, costMs, respBody(截断2k) }`；权限 lc:http:call |
+| GET | `/lc/http/log/page?apiCode=&pageNum=&pageSize=` | 调用日志分页 |
+
+### 监控 /lc/monitor
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/monitor/server` | `{ os: { name, arch, availableProcessors, systemLoadPercent }, memory: { totalMb, usedMb }, jvm: { maxMb, usedMb, threads, uptimeMinutes }, disk: [{ dir, totalGb, freeGb }], hikari: { active, idle } }`（JMX/OperatingSystemMXBean 实现，无新依赖） |
+
+### 回收站 /lc/recycle
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/recycle/types` | `[{ type, label }]`（lc_form 表单/lc_list 列表/lc_dashboard 大屏/lc_dataset 数据集） |
+| GET | `/lc/recycle/page?type=&keyword=&pageNum=&pageSize=` | 已删除行 `{ id, name, createTime }`（name 取 code 或 name 字段） |
+| POST | `/lc/recycle/restore` | `{ type, id }` → deleted 置 0（权限 lc:recycle:restore） |
+| POST | `/lc/recycle/purge` | `{ type, id }` → 物理删除（权限 lc:recycle:restore） |
+
 ## 流程模块 /flow（一期骨架）
 
 | 方法 | 路径 | 说明 |
