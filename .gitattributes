@@ -1,0 +1,11 @@
+# 保守处理：文本文件自动规范化
+* text=auto
+
+# Windows 批处理为 GBK+CRLF，必须保持字节原样（勿做换行/编码转换）
+*.bat -text
+*.cmd -text
+
+# 二进制
+*.jar binary
+*.png binary
+*.ico binary

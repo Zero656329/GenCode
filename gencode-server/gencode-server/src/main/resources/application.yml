@@ -1,0 +1,89 @@
+# 数据库方言（分页语句按方言生成）：mysql / oracle / postgresql / dm / kingbase_es ...
+gencode:
+  db-type: mysql
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: gencode-server
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/gencode?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root123456
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+  # 切换 Oracle 示例（先执行 sql/gencode-oracle.sql 一次性初始化，并把下面 sql.init.mode 改为 never）：
+  # datasource:
+  #   driver-class-name: oracle.jdbc.OracleDriver
+  #   url: jdbc:oracle:thin:@//localhost:1521/GENCECODE
+  #   username: gencode
+  #   password: gencode123
+  # 首次启动自动建表 + 种子数据（幂等脚本 CREATE TABLE IF NOT EXISTS，重复执行/重启不清库）
+  # 注意：该初始化仅适用于 MySQL；Oracle/达梦等请执行对应 sql 脚本并将 mode 改为 never
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/schema.sql
+      data-locations: classpath:sql/data.sql
+      continue-on-error: true
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# MinIO 对象存储（文件上传/下载，需先启动 MinIO）
+minio:
+  endpoint: http://127.0.0.1:9000
+  access-key: minio
+  secret-key: minio123456
+  bucket: gencode
+
+mybatis-plus:
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      id-type: assign_id
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 86400
+  is-concurrent: false
+  is-share: false
+  is-log: false
+  token-style: uuid
+
+flowable:
+  database-schema-update: true
+  async-executor-activate: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gencode: debug
