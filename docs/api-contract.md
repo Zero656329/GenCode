@@ -174,6 +174,46 @@ LcForm 结构：`{ id, tenantId, code, name, schemaJson, status(0草稿 1已发�
 | POST | `/lc/form/data/{code}` | 填报提交，body `{ "data": { ...字段值 } }`（服务端整体转 JSON 字符串存 data_json；表单须已发布） |
 | GET | `/lc/form/data/page?formCode=&pageNum=&pageSize=` | 填报数据分页，list 元素 `{ id, formCode, dataJson, createBy, createTime }` |
 
+## 低代码 /lc（二期 M2：列表与数据源）
+
+### 数据源 /lc/datasource
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/datasource/page?keyword=&pageNum=&pageSize=` | 分页；password 永远不回显 |
+| GET | `/lc/datasource/list/all` | 下拉用 `{ id, name }` |
+| POST | `/lc/datasource` | `{ name, driver, jdbcUrl, username, password, remark }`（password AES 加密落库） |
+| PUT | `/lc/datasource` | 同上 + id；password 不传=不修改 |
+| DELETE | `/lc/datasource/{id}` | 逻辑删除 |
+| POST | `/lc/datasource/{id}/test` | 连接测试，data `{ ok: true/false, message }` |
+
+### 列表定义 /lc/list
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/list/page?keyword=&status=&pageNum=&pageSize=` | 分页 |
+| GET | `/lc/list/{id}` | 详情（含 sourceConfig/listSchema JSON 字符串） |
+| POST | `/lc/list` | `{ code, name, sourceType(TABLE\|SQL\|API), sourceConfig, listSchema, remark }` |
+| PUT | `/lc/list` | 保存（id 必填，code 不可改） |
+| DELETE | `/lc/list/{id}` | 逻辑删除 |
+| PUT | `/lc/list/{id}/publish` | 发布：version+1，published_schema={sourceConfig,listSchema} 快照 |
+| PUT | `/lc/list/{id}/status/{status}` | 启用/停用 |
+| GET | `/lc/list/publish/{code}` | 运行时接口：`{ code, name, version, sourceType, sourceConfig, listSchema }` |
+| GET | `/lc/list/columns?datasourceId=&tableName=` | 反读表列 `{ columnName, typeName, comment }`（datasourceId 空=平台主库） |
+
+sourceConfig JSON：TABLE 型 `{ "datasourceId": null, "tableName": "sys_config", "pkField": "id" }`；SQL 型 `{ "datasourceId": null, "sql": "SELECT ... WHERE 1=1 AND name = #{keyword}" }`（`#{field}` 占位符由引擎转参数绑定）。
+listSchema JSON：`{ "columns": [{ "field", "title", "width", "dictType", "editable" }], "search": [{ "field", "label", "op"(eq/like/gt/ge/lt/le/between), "type"(input/number/date) }], "buttons": { "add": true, "edit": true, "delete": true } }`。
+
+### 列表数据 /lc/list/data（运行时，登录即可）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/lc/list/data/{code}` | body `{ "params": { field: value }, "pageNum": 1, "pageSize": 10, "orderBy": "id", "orderDir": "desc" }` → `{ list: [行对象], total }`；仅已发布列表 |
+| POST | `/lc/list/data/save/{code}` | TABLE 型行保存，body `{ "mode": "add"\|"edit", "pk": "id值", "row": { field: value } }`；列以 list_schema.columns 白名单过滤 |
+| POST | `/lc/list/data/delete/{code}` | TABLE 型行删除，body `{ "pk": "id值" }`；buttons.delete 为 true 时前端才显示 |
+
+安全约束：SQL 型仅允许单条 SELECT（禁分号/注释/DML/DDL 关键词）；标识符（表/列/排序字段）一律正则白名单校验；内部表（含 tenant_id 列）自动追加租户条件；API 型数据源为预留，查询时报"暂未支持"。
+
 ## 流程模块 /flow（一期骨架）
 
 | 方法 | 路径 | 说明 |

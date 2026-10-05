@@ -284,3 +284,45 @@ CREATE TABLE IF NOT EXISTS lc_form_data (
   PRIMARY KEY (id),
   KEY idx_lc_form_data_code (form_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码表单填报数据表';
+
+-- ---------------------------------------------------------------------
+-- 9. 低代码列表（M2：列表定义 + 数据源）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_list (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '列表编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '列表名称',
+  source_type       VARCHAR(16)  NOT NULL DEFAULT 'TABLE' COMMENT '数据源类型（TABLE SQL API预留）',
+  source_config     MEDIUMTEXT   NULL COMMENT '数据源配置 JSON',
+  list_schema       MEDIUMTEXT   NULL COMMENT '列表 Schema JSON：columns/search/buttons',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0,
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布快照',
+  publish_time      DATETIME     NULL,
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_list_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码列表定义表';
+
+CREATE TABLE IF NOT EXISTS lc_datasource (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  name        VARCHAR(100) NOT NULL COMMENT '数据源名称',
+  driver      VARCHAR(100) NOT NULL COMMENT '驱动类',
+  jdbc_url    VARCHAR(500) NOT NULL COMMENT 'JDBC URL',
+  username    VARCHAR(100) NOT NULL,
+  password    VARCHAR(200) NOT NULL COMMENT 'AES 加密存储',
+  remark      VARCHAR(500) NULL,
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码外部数据源表';

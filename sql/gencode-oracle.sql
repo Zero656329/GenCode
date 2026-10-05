@@ -525,3 +525,67 @@ INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, stat
 INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2024, 201, '表单发布', 'F', 'lc:form:publish', 4, 0, 0, 'init', SYSDATE);
 
 INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024);
+
+-- ---------------------------------------------------------------------
+-- 9. 低代码列表（M2：列表定义 + 数据源）
+-- ---------------------------------------------------------------------
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_list PURGE';       EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_datasource PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+
+CREATE TABLE lc_list (
+  id               NUMBER(20)        NOT NULL,
+  tenant_id        VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  code             VARCHAR2(64 CHAR) NOT NULL,
+  name             VARCHAR2(100 CHAR) NOT NULL,
+  source_type      VARCHAR2(16 CHAR)    DEFAULT 'TABLE' NOT NULL,
+  source_config    CLOB,
+  list_schema      CLOB,
+  status           NUMBER(3)         DEFAULT 0 NOT NULL,
+  version          NUMBER(10)        DEFAULT 0 NOT NULL,
+  published_schema CLOB,
+  publish_time     DATE,
+  remark           VARCHAR2(500 CHAR),
+  create_by        VARCHAR2(64 CHAR),
+  create_time      DATE,
+  update_by        VARCHAR2(64 CHAR),
+  update_time      DATE,
+  deleted          NUMBER(3)         DEFAULT 0 NOT NULL,
+  CONSTRAINT uk_lc_list_code UNIQUE (code)
+);
+COMMENT ON TABLE lc_list IS '低代码列表定义表';
+COMMENT ON COLUMN lc_list.source_type IS '数据源类型（TABLE SQL API预留）';
+COMMENT ON COLUMN lc_list.source_config IS '数据源配置 JSON';
+COMMENT ON COLUMN lc_list.list_schema IS '列表 Schema JSON：columns/search/buttons';
+
+CREATE TABLE lc_datasource (
+  id          NUMBER(20)        NOT NULL,
+  tenant_id   VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  name        VARCHAR2(100 CHAR) NOT NULL,
+  driver      VARCHAR2(100 CHAR) NOT NULL,
+  jdbc_url    VARCHAR2(500 CHAR) NOT NULL,
+  username    VARCHAR2(100 CHAR) NOT NULL,
+  password    VARCHAR2(200 CHAR) NOT NULL,
+  remark      VARCHAR2(500 CHAR),
+  create_by   VARCHAR2(64 CHAR),
+  create_time DATE,
+  update_by   VARCHAR2(64 CHAR),
+  update_time DATE,
+  deleted     NUMBER(3)         DEFAULT 0 NOT NULL
+);
+COMMENT ON TABLE lc_datasource IS '低代码外部数据源表';
+COMMENT ON COLUMN lc_datasource.password IS 'AES 加密存储';
+
+-- 列表菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (204, 200, '列表设计', '/lc/list', 'lc/list/index', 'C', 'lc:list:list', 'TableOutlined', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (205, 200, '列表设计器', '/lc/list/design/:id', 'lc/list/design', 'C', 'lc:list:edit', NULL, 9, 1, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (206, 200, '列表运行页', '/app/list/:code', 'app/list-render', 'C', NULL, NULL, 9, 1, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (207, 200, '数据源管理', '/lc/datasource', 'lc/datasource/index', 'C', 'lc:datasource:list', 'DatabaseOutlined', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2101, 204, '列表新增', 'F', 'lc:list:add', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2102, 204, '列表修改', 'F', 'lc:list:edit', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2103, 204, '列表删除', 'F', 'lc:list:delete', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2104, 204, '列表发布', 'F', 'lc:list:publish', 4, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2110, 207, '数据源新增', 'F', 'lc:datasource:add', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2111, 207, '数据源修改', 'F', 'lc:datasource:edit', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2112, 207, '数据源删除', 'F', 'lc:datasource:delete', 3, 0, 0, 'init', SYSDATE);
+
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112);

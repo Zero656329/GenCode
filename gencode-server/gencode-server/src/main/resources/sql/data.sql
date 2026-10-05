@@ -118,3 +118,21 @@ INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, ic
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024)
 AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+-- 列表菜单（列表设计/设计器/运行时/数据源管理/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(204, 200, '列表设计', '/lc/list', 'lc/list/index', 'C', 'lc:list:list', 'TableOutlined', 2, 0, 0, 'init', NOW()),
+(205, 200, '列表设计器', '/lc/list/design/:id', 'lc/list/design', 'C', 'lc:list:edit', NULL, 9, 1, 0, 'init', NOW()),
+(206, 200, '列表运行页', '/app/list/:code', 'app/list-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(207, 200, '数据源管理', '/lc/datasource', 'lc/datasource/index', 'C', 'lc:datasource:list', 'DatabaseOutlined', 3, 0, 0, 'init', NOW()),
+(2101, 204, '列表新增', NULL, NULL, 'F', 'lc:list:add', NULL, 1, 0, 0, 'init', NOW()),
+(2102, 204, '列表修改', NULL, NULL, 'F', 'lc:list:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2103, 204, '列表删除', NULL, NULL, 'F', 'lc:list:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2104, 204, '列表发布', NULL, NULL, 'F', 'lc:list:publish', NULL, 4, 0, 0, 'init', NOW()),
+(2110, 207, '数据源新增', NULL, NULL, 'F', 'lc:datasource:add', NULL, 1, 0, 0, 'init', NOW()),
+(2111, 207, '数据源修改', NULL, NULL, 'F', 'lc:datasource:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2112, 207, '数据源删除', NULL, NULL, 'F', 'lc:datasource:delete', NULL, 3, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

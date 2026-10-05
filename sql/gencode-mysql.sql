@@ -405,3 +405,63 @@ INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, ic
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024)
 AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
+
+-- ---------------------------------------------------------------------
+-- 9. 低代码列表（M2：列表定义 + 数据源）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_list (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '列表编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '列表名称',
+  source_type       VARCHAR(16)  NOT NULL DEFAULT 'TABLE' COMMENT '数据源类型（TABLE单表 SQL自定义 API接口预留）',
+  source_config     MEDIUMTEXT   NULL COMMENT '数据源配置 JSON：TABLE{datasourceId,tableName,pkField} SQL{datasourceId,sql}',
+  list_schema       MEDIUMTEXT   NULL COMMENT '列表 Schema JSON：columns/search/buttons',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0,
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布快照（含 source_config + list_schema）',
+  publish_time      DATETIME     NULL,
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_list_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码列表定义表';
+
+CREATE TABLE IF NOT EXISTS lc_datasource (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  name        VARCHAR(100) NOT NULL COMMENT '数据源名称',
+  driver      VARCHAR(100) NOT NULL COMMENT '驱动类',
+  jdbc_url    VARCHAR(500) NOT NULL COMMENT 'JDBC URL',
+  username    VARCHAR(100) NOT NULL,
+  password    VARCHAR(200) NOT NULL COMMENT 'AES 加密存储',
+  remark      VARCHAR(500) NULL,
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码外部数据源表';
+
+-- 列表菜单（列表设计/设计器/运行时/数据源管理/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(204, 200, '列表设计', '/lc/list', 'lc/list/index', 'C', 'lc:list:list', 'TableOutlined', 2, 0, 0, 'init', NOW()),
+(205, 200, '列表设计器', '/lc/list/design/:id', 'lc/list/design', 'C', 'lc:list:edit', NULL, 9, 1, 0, 'init', NOW()),
+(206, 200, '列表运行页', '/app/list/:code', 'app/list-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(207, 200, '数据源管理', '/lc/datasource', 'lc/datasource/index', 'C', 'lc:datasource:list', 'DatabaseOutlined', 3, 0, 0, 'init', NOW()),
+(2101, 204, '列表新增', NULL, NULL, 'F', 'lc:list:add', NULL, 1, 0, 0, 'init', NOW()),
+(2102, 204, '列表修改', NULL, NULL, 'F', 'lc:list:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2103, 204, '列表删除', NULL, NULL, 'F', 'lc:list:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2104, 204, '列表发布', NULL, NULL, 'F', 'lc:list:publish', NULL, 4, 0, 0, 'init', NOW()),
+(2110, 207, '数据源新增', NULL, NULL, 'F', 'lc:datasource:add', NULL, 1, 0, 0, 'init', NOW()),
+(2111, 207, '数据源修改', NULL, NULL, 'F', 'lc:datasource:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2112, 207, '数据源删除', NULL, NULL, 'F', 'lc:datasource:delete', NULL, 3, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (204, 205, 206, 207, 2101, 2102, 2103, 2104, 2110, 2111, 2112)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);
