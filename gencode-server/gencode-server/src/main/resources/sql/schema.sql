@@ -247,3 +247,40 @@ CREATE TABLE IF NOT EXISTS sys_file (
   PRIMARY KEY (id),
   KEY idx_tenant (tenant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件表';
+
+-- ---------------------------------------------------------------------
+-- 8. 低代码表单（M1：表单定义 + 填报数据）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_form (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '表单编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '表单名称',
+  schema_json       MEDIUMTEXT   NULL COMMENT '设计 Schema JSON',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0 COMMENT '发布版本号',
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布 Schema 快照',
+  publish_time      DATETIME     NULL COMMENT '最近发布时间',
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_form_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码表单定义表';
+
+CREATE TABLE IF NOT EXISTS lc_form_data (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  form_code   VARCHAR(64)  NOT NULL COMMENT '表单编码',
+  data_json   MEDIUMTEXT   NOT NULL COMMENT '填报数据 JSON',
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_lc_form_data_code (form_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码表单填报数据表';

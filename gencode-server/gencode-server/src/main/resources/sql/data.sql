@@ -103,3 +103,18 @@ INSERT INTO sys_config (id, tenant_id, config_name, config_key, config_value, st
 (3, '000000', '默认分页大小', 'sys.default.pageSize', '10',                 0, NULL,               'init', NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- 低代码菜单（目录/表单设计/隐藏的设计器与填报页/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(200, 0, '低代码', '/lc', NULL, 'M', NULL, 'AppstoreOutlined', 3, 0, 0, 'init', NOW()),
+(201, 200, '表单设计', '/lc/form', 'lc/form/index', 'C', 'lc:form:list', 'FormOutlined', 1, 0, 0, 'init', NOW()),
+(202, 200, '表单填报页', '/app/form/:code', 'app/form-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(203, 200, '表单设计器', '/lc/form/design/:id', 'lc/form/design', 'C', 'lc:form:edit', NULL, 9, 1, 0, 'init', NOW()),
+(2021, 201, '表单新增', NULL, NULL, 'F', 'lc:form:add', NULL, 1, 0, 0, 'init', NOW()),
+(2022, 201, '表单修改', NULL, NULL, 'F', 'lc:form:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2023, 201, '表单删除', NULL, NULL, 'F', 'lc:form:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2024, 201, '表单发布', NULL, NULL, 'F', 'lc:form:publish', NULL, 4, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

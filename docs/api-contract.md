@@ -150,6 +150,30 @@
 SysFile 结构：`{ id, tenantId, bucket, objectName, originalName, suffix, fileSize, contentType, createTime }`。
 存储约定：桶 `gencode`（不存在自动创建），对象名 `{yyyyMM}/{uuid}.{suffix}`；MinIO 不可用时后端可启动，上传/下载返回"请确认 MinIO 服务可用"。依赖本地 MinIO：9000 API / 9001 控制台（root 账号 minio / minio123456）。
 
+## 低代码 /lc（二期 M1：表单）
+
+### 表单定义 /lc/form
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/lc/form/page?keyword=&status=&pageNum=&pageSize=` | keyword 匹配 code/name |
+| GET | `/lc/form/{id}` | 详情（含 schemaJson） |
+| POST | `/lc/form` | `{ code, name, remark }` 新建草稿（schemaJson 置空，version=0，status=0） |
+| PUT | `/lc/form` | `{ id, name, remark, schemaJson }` 保存设计（schemaJson 为 JSON 字符串） |
+| DELETE | `/lc/form/{id}` | 逻辑删除 |
+| PUT | `/lc/form/{id}/publish` | 发布：version+1，published_schema 快照=当前 schema_json，status=1 |
+| PUT | `/lc/form/{id}/status/{status}` | 启用/停用（1=已发布 2=停用 0=草稿；仅改状态不产生快照） |
+| GET | `/lc/form/publish/{code}` | **运行时接口**：返回 `{ code, name, version, schemaJson }`（未发布过报"表单未发布"） |
+
+LcForm 结构：`{ id, tenantId, code, name, schemaJson, status(0草稿 1已发布 2停用), version, publishedSchema, publishTime, remark, createTime }`。code 全局唯一（重复报"表单编码已存在"）。内置保护：已发布表单删除时提示先停用；code 不可修改。
+
+### 表单数据 /lc/form/data
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/lc/form/data/{code}` | 填报提交，body `{ "data": { ...字段值 } }`（服务端整体转 JSON 字符串存 data_json；表单须已发布） |
+| GET | `/lc/form/data/page?formCode=&pageNum=&pageSize=` | 填报数据分页，list 元素 `{ id, formCode, dataJson, createBy, createTime }` |
+
 ## 流程模块 /flow（一期骨架）
 
 | 方法 | 路径 | 说明 |

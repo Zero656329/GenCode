@@ -353,3 +353,55 @@ CREATE TABLE IF NOT EXISTS sys_file (
   PRIMARY KEY (id),
   KEY idx_tenant (tenant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件表';
+
+-- ---------------------------------------------------------------------
+-- 8. 低代码表单（M1：表单定义 + 填报数据）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lc_form (
+  id                BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id         VARCHAR(12)  NOT NULL DEFAULT '000000',
+  code              VARCHAR(64)  NOT NULL COMMENT '表单编码（唯一）',
+  name              VARCHAR(100) NOT NULL COMMENT '表单名称',
+  schema_json       MEDIUMTEXT   NULL COMMENT '设计 Schema JSON',
+  status            TINYINT      NOT NULL DEFAULT 0 COMMENT '（0草稿 1已发布 2停用）',
+  version           INT          NOT NULL DEFAULT 0 COMMENT '发布版本号',
+  published_schema  MEDIUMTEXT   NULL COMMENT '已发布 Schema 快照',
+  publish_time      DATETIME     NULL COMMENT '最近发布时间',
+  remark            VARCHAR(500) NULL,
+  create_by         VARCHAR(64)  NULL,
+  create_time       DATETIME     NULL,
+  update_by         VARCHAR(64)  NULL,
+  update_time       DATETIME     NULL,
+  deleted           TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_lc_form_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码表单定义表';
+
+CREATE TABLE IF NOT EXISTS lc_form_data (
+  id          BIGINT       NOT NULL COMMENT '雪花ID',
+  tenant_id   VARCHAR(12)  NOT NULL DEFAULT '000000',
+  form_code   VARCHAR(64)  NOT NULL COMMENT '表单编码',
+  data_json   MEDIUMTEXT   NOT NULL COMMENT '填报数据 JSON',
+  create_by   VARCHAR(64)  NULL,
+  create_time DATETIME     NULL,
+  update_by   VARCHAR(64)  NULL,
+  update_time DATETIME     NULL,
+  deleted     TINYINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_lc_form_data_code (form_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='低代码表单填报数据表';
+
+-- 低代码菜单（目录/表单设计/隐藏的设计器与填报页/按钮）
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES
+(200, 0, '低代码', '/lc', NULL, 'M', NULL, 'AppstoreOutlined', 3, 0, 0, 'init', NOW()),
+(201, 200, '表单设计', '/lc/form', 'lc/form/index', 'C', 'lc:form:list', 'FormOutlined', 1, 0, 0, 'init', NOW()),
+(202, 200, '表单填报页', '/app/form/:code', 'app/form-render', 'C', NULL, NULL, 9, 1, 0, 'init', NOW()),
+(203, 200, '表单设计器', '/lc/form/design/:id', 'lc/form/design', 'C', 'lc:form:edit', NULL, 9, 1, 0, 'init', NOW()),
+(2021, 201, '表单新增', NULL, NULL, 'F', 'lc:form:add', NULL, 1, 0, 0, 'init', NOW()),
+(2022, 201, '表单修改', NULL, NULL, 'F', 'lc:form:edit', NULL, 2, 0, 0, 'init', NOW()),
+(2023, 201, '表单删除', NULL, NULL, 'F', 'lc:form:delete', NULL, 3, 0, 0, 'init', NOW()),
+(2024, 201, '表单发布', NULL, NULL, 'F', 'lc:form:publish', NULL, 4, 0, 0, 'init', NOW());
+
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024)
+AND NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = sys_menu.id);

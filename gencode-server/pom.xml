@@ -23,6 +23,7 @@
         <module>gencode-framework</module>
         <module>gencode-module-system</module>
         <module>gencode-module-flow</module>
+        <module>gencode-module-lowcode</module>
         <module>gencode-server</module>
     </modules>
 
@@ -58,6 +59,11 @@
             <dependency>
                 <groupId>com.gencode</groupId>
                 <artifactId>gencode-module-flow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gencode</groupId>
+                <artifactId>gencode-module-lowcode</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- 三方依赖（版本固定） -->

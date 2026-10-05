@@ -463,3 +463,65 @@ INSERT INTO sys_config (id, tenant_id, config_name, config_key, config_value, st
 INSERT INTO sys_config (id, tenant_id, config_name, config_key, config_value, status, remark, create_by, create_time) VALUES (3, '000000', '默认分页大小', 'sys.default.pageSize', '10', 0, NULL, 'init', SYSDATE);
 
 COMMIT;
+
+-- ---------------------------------------------------------------------
+-- 8. 低代码表单（M1：表单定义 + 填报数据）
+-- ---------------------------------------------------------------------
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_form_data PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+DECLARE BEGIN EXECUTE IMMEDIATE 'DROP TABLE lc_form PURGE';      EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END; /
+
+CREATE TABLE lc_form (
+  id               NUMBER(20)        NOT NULL,
+  tenant_id        VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  code             VARCHAR2(64 CHAR) NOT NULL,
+  name             VARCHAR2(100 CHAR) NOT NULL,
+  schema_json      CLOB,
+  status           NUMBER(3)         DEFAULT 0 NOT NULL,
+  version          NUMBER(10)        DEFAULT 0 NOT NULL,
+  published_schema CLOB,
+  publish_time     DATE,
+  remark           VARCHAR2(500 CHAR),
+  create_by        VARCHAR2(64 CHAR),
+  create_time      DATE,
+  update_by        VARCHAR2(64 CHAR),
+  update_time      DATE,
+  deleted          NUMBER(3)         DEFAULT 0 NOT NULL,
+  CONSTRAINT uk_lc_form_code UNIQUE (code)
+);
+
+COMMENT ON TABLE lc_form IS '低代码表单定义表';
+COMMENT ON COLUMN lc_form.code IS '表单编码（唯一）';
+COMMENT ON COLUMN lc_form.schema_json IS '设计 Schema JSON';
+COMMENT ON COLUMN lc_form.status IS '（0草稿 1已发布 2停用）';
+COMMENT ON COLUMN lc_form.version IS '发布版本号';
+COMMENT ON COLUMN lc_form.published_schema IS '已发布 Schema 快照';
+
+CREATE TABLE lc_form_data (
+  id          NUMBER(20)        NOT NULL,
+  tenant_id   VARCHAR2(12 CHAR)    DEFAULT '000000' NOT NULL,
+  form_code   VARCHAR2(64 CHAR) NOT NULL,
+  data_json   CLOB              NOT NULL,
+  create_by   VARCHAR2(64 CHAR),
+  create_time DATE,
+  update_by   VARCHAR2(64 CHAR),
+  update_time DATE,
+  deleted     NUMBER(3)         DEFAULT 0 NOT NULL
+);
+
+COMMENT ON TABLE lc_form_data IS '低代码表单填报数据表';
+COMMENT ON COLUMN lc_form_data.form_code IS '表单编码';
+COMMENT ON COLUMN lc_form_data.data_json IS '填报数据 JSON';
+
+CREATE INDEX idx_lc_form_data_code ON lc_form_data (form_code);
+
+-- 低代码菜单
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (200, 0, '低代码', '/lc', NULL, 'M', NULL, 'AppstoreOutlined', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (201, 200, '表单设计', '/lc/form', 'lc/form/index', 'C', 'lc:form:list', 'FormOutlined', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (202, 200, '表单填报页', '/app/form/:code', 'app/form-render', 'C', NULL, NULL, 9, 1, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, path, component, menu_type, perms, icon, sort, visible, status, create_by, create_time) VALUES (203, 200, '表单设计器', '/lc/form/design/:id', 'lc/form/design', 'C', 'lc:form:edit', NULL, 9, 1, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2021, 201, '表单新增', 'F', 'lc:form:add', 1, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2022, 201, '表单修改', 'F', 'lc:form:edit', 2, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2023, 201, '表单删除', 'F', 'lc:form:delete', 3, 0, 0, 'init', SYSDATE);
+INSERT INTO sys_menu (id, parent_id, name, menu_type, perms, sort, visible, status, create_by, create_time) VALUES (2024, 201, '表单发布', 'F', 'lc:form:publish', 4, 0, 0, 'init', SYSDATE);
+
+INSERT INTO sys_role_menu (role_id, menu_id) SELECT 1, id FROM sys_menu WHERE id IN (200, 201, 202, 203, 2021, 2022, 2023, 2024);

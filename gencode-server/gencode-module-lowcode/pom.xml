@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.gencode</groupId>
+        <artifactId>gencode-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>gencode-module-lowcode</artifactId>
+    <name>gencode-module-lowcode</name>
+    <description>低代码模块：表单设计与填报（二期 M1）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.gencode</groupId>
+            <artifactId>gencode-framework</artifactId>
+        </dependency>
+    </dependencies>
+</project>
