@@ -271,6 +271,7 @@ paramsJson：`[{ "name": "days", "label": "最近天数", "type": "number", "req
 | PUT | `/lc/dashboard` | 保存布局（code 不可改） |
 | DELETE | `/lc/dashboard/{id}` | 逻辑删除 |
 | PUT | `/lc/dashboard/{id}/publish` | 发布：version+1 快照 |
+| PUT | `/lc/dashboard/{id}/status/{status}` | 启用/停用（1=已发布 2=停用 0=草稿；仅改状态不影响快照） |
 | GET | `/lc/dashboard/publish/{code}` | 运行时接口：`{ code, name, version, layoutJson }` |
 
 layoutJson：`{ "items": [{ "type": "chart", "chartType": "line"\|"bar"\|"pie", "datasetCode", "title", "xField", "yField", "seriesField", "x", "y", "w", "h", "refreshSec" }] }`。
